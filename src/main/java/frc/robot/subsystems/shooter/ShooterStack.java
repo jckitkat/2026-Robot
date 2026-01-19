@@ -4,6 +4,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Robot;
 import frc.robot.subsystems.drive.Drivetrain;
 import frc.robot.subsystems.shooter.feeder.Feeder;
@@ -47,12 +48,17 @@ public class ShooterStack extends SubsystemBase {
         currentShooterPosition = drivetrain.getPose().plus(new Transform2d(robotRelativeOffset.getTranslation(), robotRelativeOffset.getRotation()));
 //        Logger.recordOutput(name+"position", currentShooterPosition);
         distanceToTarget = currentShooterPosition.getTranslation().getDistance(shotTarget);
+        double targetTurretRotation = calculateTurretRotation();
 
-        turret.setRotation(calculateTurretRotation());
+        turret.setRotation(targetTurretRotation);
         hood.setAngle(hoodMap.get(distanceToTarget) != null ? hoodMap.get(distanceToTarget) : 0);
 
         if (shootingEnabled) {
-            flywheel.setVelocity(flywheelMap.get(distanceToTarget) != null ? flywheelMap.get(distanceToTarget) : 0);
+            flywheel.setVelocity(
+                    flywheelMap.get(distanceToTarget) != null ?
+                    flywheelMap.get(distanceToTarget) + calculateFlywheelVelocityCorrection(targetTurretRotation - drivetrain.getRotation().getRadians())
+                    : 0
+            );
         } else {
             flywheel.setVelocity(idleVelocity);
         }
@@ -60,9 +66,9 @@ public class ShooterStack extends SubsystemBase {
         if (!(flywheel.getVelocity() >= flywheel.getTargetVelocity()) || !shootingEnabled) {
             feeder.setFeedSpeed(0);
         } else if ((flywheel.getVelocity() >= flywheel.getTargetVelocity()) && shootingEnabled) {
-            feeder.setFeedSpeed(0.5);
+            feeder.setFeedVelocity(30);
         } else {
-            feeder.setFeedSpeed(0);
+            feeder.setFeedVelocity(0);
         }
     }
 
@@ -84,6 +90,13 @@ public class ShooterStack extends SubsystemBase {
                 shotTarget.getY() - currentShooterPosition.getY(),
                 shotTarget.getX() - currentShooterPosition.getX()
                 );
+    }
+
+    private double calculateFlywheelVelocityCorrection(double angleToTarget) {
+        double xVelocity = drivetrain.getChassisSpeeds().vxMetersPerSecond;
+        double yVelocity = drivetrain.getChassisSpeeds().vyMetersPerSecond;
+
+        return (Math.sqrt((xVelocity * xVelocity) + (yVelocity * yVelocity)) * Math.cos(angleToTarget - Math.atan2(yVelocity, xVelocity))) / Constants.Shooter.flywheelDiameter;
     }
 
     public void setTurretAngle(double angle) {

@@ -54,5 +54,8 @@ public final class Constants {
       static {
         hoodAngleInterpolationMap.put(1.0, 4.0);
       }
+
+      // meters
+      public static final double flywheelDiameter = 0.1016;
   }
 }

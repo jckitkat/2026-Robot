@@ -23,4 +23,6 @@ public class Feeder extends SubsystemBase {
     public void setFeedSpeed(double speed) {
         io.setFeedSpeed(speed);
     }
+
+    public void setFeedVelocity(double velocity) {io.setFeedVelocity(velocity);}
 }

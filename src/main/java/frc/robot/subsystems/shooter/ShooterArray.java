@@ -8,16 +8,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ShooterArray extends SubsystemBase {
+public class ShooterArray{
 
     Map<String, ShooterStack> shooterStacks = new HashMap<>();
 
     public ShooterArray() {
-
-    }
-
-    @Override
-    public void periodic() {
 
     }
 

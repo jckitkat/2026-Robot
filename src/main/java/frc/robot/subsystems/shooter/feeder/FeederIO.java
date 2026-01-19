@@ -14,4 +14,6 @@ public interface FeederIO {
     public default void updateInputs(FeederIOInputs inputs) {};
 
     public default void setFeedSpeed(double speed) {};
+
+    public default void setFeedVelocity(double velocity) {};
 }
