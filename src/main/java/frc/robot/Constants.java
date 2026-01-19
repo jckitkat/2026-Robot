@@ -50,6 +50,7 @@ public final class Constants {
   public static class Shooter {
       public static final InterpolatingDoubleTreeMap hoodAngleInterpolationMap = new InterpolatingDoubleTreeMap();
       public static final InterpolatingDoubleTreeMap flywheelVelocityInterpolationMap = new InterpolatingDoubleTreeMap();
+      public static double amperageThreshold = 55;
 
       static {
         hoodAngleInterpolationMap.put(1.0, 4.0);
