@@ -42,6 +42,9 @@ public final class Constants {
     REPLAY
   }
 
+
+  public static final double loopPeriodSecs = 0.02;
+
   public static class FieldPoses {
       public static final Translation2d blueHub = new Translation2d(4.629, 4.014);
       public static final Translation2d redHub = new Translation2d(11.943, 4.014);
@@ -58,5 +61,14 @@ public final class Constants {
 
       // meters
       public static final double flywheelDiameter = 0.1016;
+
+      public static class Turret {
+          public static final double simP = 0.5;
+          public static final double simI = 0;
+          public static final double simD = 0.05;
+
+          public static final double leftLimit = Math.PI;
+          public static final double rightLimit = -Math.PI;
+      }
   }
 }

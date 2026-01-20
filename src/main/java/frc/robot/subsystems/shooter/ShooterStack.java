@@ -14,7 +14,7 @@ import frc.robot.subsystems.shooter.turret.Turret;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-public class ShooterStack extends SubsystemBase {
+public class ShooterStack {
     private final Drivetrain drivetrain = Robot.drivetrain;
     private final Turret turret;
     private final Hood hood;
@@ -43,10 +43,9 @@ public class ShooterStack extends SubsystemBase {
         this.name = name;
     }
 
-    @Override
     public void periodic() {
         currentShooterPosition = drivetrain.getPose().plus(new Transform2d(robotRelativeOffset.getTranslation(), robotRelativeOffset.getRotation()));
-//        Logger.recordOutput(name+"position", currentShooterPosition);
+        Logger.recordOutput(name+" Turret Position", new Pose2d(currentShooterPosition.getX(), currentShooterPosition.getY(), Rotation2d.fromRadians(turret.getRotationFieldCoordinates())));
         distanceToTarget = currentShooterPosition.getTranslation().getDistance(shotTarget);
         double targetTurretRotation = calculateTurretRotation();
 
@@ -86,10 +85,11 @@ public class ShooterStack extends SubsystemBase {
     }
 
     private double calculateTurretRotation() {
-        return drivetrain.getRotation().getRadians() - Math.atan2(
+        return drivetrain.getRotation().getRadians() + Math.atan2(
                 shotTarget.getY() - currentShooterPosition.getY(),
                 shotTarget.getX() - currentShooterPosition.getX()
                 );
+//        drivetrain.getRotation().getRadians() -
     }
 
     private double calculateFlywheelVelocityCorrection(double angleToTarget) {
