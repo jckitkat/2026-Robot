@@ -14,7 +14,7 @@ public interface FlywheelIO {
 
     public default void updateInputs(FlywheelIOInputs inputs) {};
 
-    public default void setVelocity(double radiansPerSecond) {};
+    public default void setVelocity(double rotationsPerSecond) {};
 
     public default void setPower(double percent) {};
 }
