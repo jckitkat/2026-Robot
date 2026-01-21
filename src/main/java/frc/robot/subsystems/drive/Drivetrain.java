@@ -50,6 +50,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
+import frc.robot.Robot;
 import frc.robot.generated.TunerConstants;
 import frc.robot.util.DrivetrainPublisher;
 import frc.robot.util.LocalADStarAK;
@@ -60,6 +61,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
+import org.ironmaple.simulation.SimulatedArena;
+import org.ironmaple.simulation.drivesims.COTS;
+import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
+import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
@@ -117,6 +122,21 @@ public class Drivetrain extends SubsystemBase {
     private Matrix<N3, N1> visionMeasurementStdDevs = VecBuilder.fill(3, 3, 3);
 
     private final Field2d field = new Field2d();
+
+    public static final DriveTrainSimulationConfig mapleSimConfig = DriveTrainSimulationConfig.Default()
+            .withRobotMass(Kilograms.of(ROBOT_MASS_KG))
+            .withCustomModuleTranslations(getModuleTranslations())
+            .withGyro(COTS.ofPigeon2())
+            .withSwerveModule(new SwerveModuleSimulationConfig(
+                    DCMotor.getKrakenX60(1),
+                    DCMotor.getKrakenX44(1),
+                    TunerConstants.FrontLeft.DriveMotorGearRatio,
+                    TunerConstants.FrontLeft.SteerMotorGearRatio,
+                    Volts.of(TunerConstants.FrontLeft.DriveFrictionVoltage),
+                    Volts.of(TunerConstants.FrontLeft.SteerFrictionVoltage),
+                    Meters.of(TunerConstants.FrontLeft.WheelRadius),
+                    KilogramSquareMeters.of(TunerConstants.FrontLeft.SteerInertia),
+                    WHEEL_COF));
 
     public Drivetrain(
             GyroIO gyroIO,
@@ -408,6 +428,9 @@ public class Drivetrain extends SubsystemBase {
     /** Returns the current odometry pose. */
     @AutoLogOutput(key = "Odometry/Robot")
     public Pose2d getPose() {
+        if (Constants.currentMode == Constants.Mode.SIM) {
+            return Robot.driveSimulation.getSimulatedDriveTrainPose();
+        }
         return poseEstimator.getEstimatedPosition();
     }
 

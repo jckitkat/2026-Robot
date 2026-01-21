@@ -16,6 +16,9 @@ package frc.robot;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -23,10 +26,25 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.drive.*;
 import frc.robot.subsystems.robotControl.RobotControl;
-import frc.robot.subsystems.robotControl.RobotControlIO;
+import frc.robot.subsystems.shooter.ShooterArray;
+import frc.robot.subsystems.shooter.ShooterStack;
+import frc.robot.subsystems.shooter.feeder.Feeder;
+import frc.robot.subsystems.shooter.feeder.FeederIO;
+import frc.robot.subsystems.shooter.feeder.FeederIOSim;
+import frc.robot.subsystems.shooter.flywheel.Flywheel;
+import frc.robot.subsystems.shooter.flywheel.FlywheelIO;
+import frc.robot.subsystems.shooter.flywheel.FlywheelIOSim;
+import frc.robot.subsystems.shooter.hood.Hood;
+import frc.robot.subsystems.shooter.hood.HoodIO;
+import frc.robot.subsystems.shooter.hood.HoodIOSim;
+import frc.robot.subsystems.shooter.turret.Turret;
+import frc.robot.subsystems.shooter.turret.TurretIO;
+import frc.robot.subsystems.shooter.turret.TurretIOSim;
 import frc.robot.utils.DriveModes;
 import frc.robot.utils.RobotStates;
 import frc.robot.utils.RobotTransitions;
+import org.ironmaple.simulation.SimulatedArena;
+import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -42,9 +60,12 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  */
 public class Robot extends LoggedRobot {
   private Command autonomousCommand;
-  private RobotContainer robotContainer;
+  private final RobotContainer robotContainer;
 
   public static Drivetrain drivetrain;
+  public static ShooterArray shooterArray = new ShooterArray();
+
+  public static SwerveDriveSimulation driveSimulation = null;
 
   public static final XboxController driverController = new XboxController(Constants.DriverController.PORT);
 
@@ -114,21 +135,59 @@ public class Robot extends LoggedRobot {
               drivetrain =
                       new Drivetrain(
                               new GyroIOPigeon2(),
-                              new ModuleIOTalonFX(TunerConstants.FrontLeft),
-                              new ModuleIOTalonFX(TunerConstants.FrontRight),
-                              new ModuleIOTalonFX(TunerConstants.BackLeft),
-                              new ModuleIOTalonFX(TunerConstants.BackRight));
+                              new ModuleIOReal(TunerConstants.FrontLeft),
+                              new ModuleIOReal(TunerConstants.FrontRight),
+                              new ModuleIOReal(TunerConstants.BackLeft),
+                              new ModuleIOReal(TunerConstants.BackRight));
+              shooterArray.addShooter(new ShooterStack(
+                      "LeftShooterStack",
+                      new Turret("leftTurret", new TurretIO() {}),
+                      new Hood("leftHood", new HoodIO() {}),
+                      new Flywheel("leftFlywheel", new FlywheelIO() {}),
+                      new Feeder("leftFeeder", new FeederIO() {}),
+                      new Pose2d()
+              ));
+              shooterArray.addShooter(new ShooterStack(
+                      "RightShooterStack",
+                      new Turret("rightTurret", new TurretIO() {}),
+                      new Hood("rightHood", new HoodIO() {}),
+                      new Flywheel("rightFlywheel", new FlywheelIO() {}),
+                      new Feeder("rightFeeder", new FeederIO() {}),
+                      new Pose2d()
+              ));
               break;
 
           case SIM:
               // Sim robot, instantiate physics sim IO implementations
+
+            driveSimulation = new SwerveDriveSimulation(Drivetrain.mapleSimConfig, new Pose2d(2, 2, new Rotation2d()));
+            SimulatedArena.getInstance().addDriveTrainSimulation(driveSimulation);
               drivetrain =
                       new Drivetrain(
                               new GyroIO() {},
-                              new ModuleIOSim(TunerConstants.FrontLeft),
-                              new ModuleIOSim(TunerConstants.FrontRight),
-                              new ModuleIOSim(TunerConstants.BackLeft),
-                              new ModuleIOSim(TunerConstants.BackRight));
+                              new ModuleIOSim(TunerConstants.FrontLeft, driveSimulation.getModules()[0]),
+                              new ModuleIOSim(TunerConstants.FrontRight, driveSimulation.getModules()[1]),
+                              new ModuleIOSim(TunerConstants.BackLeft, driveSimulation.getModules()[2]),
+                              new ModuleIOSim(TunerConstants.BackRight, driveSimulation.getModules()[3]));
+              shooterArray.addShooter(new ShooterStack(
+                      "LeftShooterStack",
+                      new Turret("leftTurret", new TurretIOSim()),
+                      new Hood("leftHood", new HoodIOSim()),
+                      new Flywheel("leftFlywheel", new FlywheelIOSim()),
+                      new Feeder("leftFeeder", new FeederIOSim()),
+                      new Pose2d(Units.inchesToMeters(-8), Units.inchesToMeters(8), new Rotation2d())
+              ));
+              shooterArray.addShooter(new ShooterStack(
+                      "RightShooterStack",
+                      new Turret("rightTurret", new TurretIOSim()),
+                      new Hood("rightHood", new HoodIOSim()),
+                      new Flywheel("rightFlywheel", new FlywheelIOSim()),
+                      new Feeder("rightFeeder", new FeederIOSim()),
+                      new Pose2d(Units.inchesToMeters(-8), Units.inchesToMeters(-8), new Rotation2d())
+              ));
+
+              shooterArray.setTarget(Constants.FieldPoses.blueHub);
+              shooterArray.setInterpolationMaps(Constants.Shooter.simHoodAngleInterpolationMap, Constants.Shooter.simFlywheelVelocityInterpolationMap);
               break;
 
           default:
@@ -140,6 +199,22 @@ public class Robot extends LoggedRobot {
                               new ModuleIO() {},
                               new ModuleIO() {},
                               new ModuleIO() {});
+              shooterArray.addShooter(new ShooterStack(
+                      "LeftShooterStack",
+                      new Turret("leftTurret", new TurretIO() {}),
+                      new Hood("leftHood", new HoodIO() {}),
+                      new Flywheel("leftFlywheel", new FlywheelIO() {}),
+                      new Feeder("leftFeeder", new FeederIO() {}),
+                      new Pose2d()
+              ));
+              shooterArray.addShooter(new ShooterStack(
+                      "RightShooterStack",
+                      new Turret("rightTurret", new TurretIO() {}),
+                      new Hood("rightHood", new HoodIO() {}),
+                      new Flywheel("rightFlywheel", new FlywheelIO() {}),
+                      new Feeder("rightFeeder", new FeederIO() {}),
+                      new Pose2d()
+              ));
               break;
     }
 
@@ -155,6 +230,7 @@ public class Robot extends LoggedRobot {
 
     // initialize default state and drive commands
     RobotControl.setDriveModeCommand(DriveModes.teleopDrive);
+//    drivetrain.setPose(new Pose2d(0, 2, Rotation2d.fromDegrees(32)));
   }
 
   /** This function is called periodically during all modes. */
@@ -231,7 +307,18 @@ public class Robot extends LoggedRobot {
 
   /** This function is called periodically whilst in simulation. */
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+    if (Constants.currentMode != Constants.Mode.SIM) return;
+
+    SimulatedArena.getInstance().simulationPeriodic();
+    Logger.recordOutput("FieldSimulation/RobotPosition", driveSimulation.getSimulatedDriveTrainPose());
+    Logger.recordOutput("FieldSimulation/Fuel", SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+//    driveSimulation.setAngularVelocity(Units.degreesToRadians(15));
+
+    if (drivetrain.getPose().getY() < 7.3) {
+      driveSimulation.setLinearVelocity(0, 0.5);
+    }
+  }
 
     public static DriverStation.Alliance getAlliance() {
       return DriverStation.isDSAttached() ? DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue) : DriverStation.Alliance.Blue;
